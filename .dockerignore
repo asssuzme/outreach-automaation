@@ -1,0 +1,28 @@
+# Ignore unnecessary files in Docker build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.git/
+.gitignore
+.env
+*.log
+output/
+linkedin_browser/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Keep these
+!requirements.txt
+!config.py
+!*.py
+

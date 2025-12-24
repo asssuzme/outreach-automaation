@@ -1,0 +1,17 @@
+# LinkedIn Profile URLs - One per line
+# Lines starting with # are ignored
+# You can use full URLs or just usernames
+
+# Full URLs:
+https://www.linkedin.com/in/sahil-kathpalia-8051a590
+https://www.linkedin.com/in/jainjatin2525
+
+# Or just usernames (will be converted to full URLs):
+# ashutosh-lath-3a374b2b3
+# varunlimaye
+
+# Example format:
+# https://www.linkedin.com/in/username
+# username-only
+# www.linkedin.com/in/username
+

@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  outreach-automation:
+    build: .
+    container_name: linkedin-outreach
+    restart: unless-stopped
+    environment:
+      # API Keys (set via .env file or environment)
+      - APIFY_API_KEY=${APIFY_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANNOTATION_BACKEND=${ANNOTATION_BACKEND:-gemini_native_pro}
+      # Output directory
+      - OUTPUT_DIR=/app/output
+    volumes:
+      # Persist output data
+      - ./output:/app/output
+      # Persist cookies (if needed)
+      - ./linkedin_cookies.json:/app/linkedin_cookies.json:ro
+      # Logs
+      - ./logs:/app/logs
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
