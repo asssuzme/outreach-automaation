@@ -38,8 +38,17 @@ import undetected_chromedriver as uc
 
 
 def load_cookies(file_path="linkedin_cookies.json"):
-    with open(file_path, 'r') as f:
-        return json.load(f)
+    """Load LinkedIn cookies from environment secrets or file."""
+    li_at = os.environ.get('LINKEDIN_LI_AT')
+    if li_at:
+        return {
+            'li_at': li_at,
+            'JSESSIONID': os.environ.get('LINKEDIN_JSESSIONID', '')
+        }
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    raise FileNotFoundError("LinkedIn cookies not configured")
 
 
 def send_message_with_photos(profile_url: str, message: str, image_paths: list, cookies_file: str = "linkedin_cookies.json"):

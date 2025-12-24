@@ -191,16 +191,27 @@ def capture_linkedin_page_screenshot(url: str, output_path: str, cookie_data: di
     return output_path
 
 
+def load_cookies():
+    """Load LinkedIn cookies from environment secrets or file."""
+    li_at = os.environ.get('LINKEDIN_LI_AT')
+    if li_at:
+        return {
+            'li_at': li_at,
+            'JSESSIONID': os.environ.get('LINKEDIN_JSESSIONID', '')
+        }
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    cookie_file = os.path.join(script_dir, 'linkedin_cookies.json')
+    if os.path.exists(cookie_file):
+        with open(cookie_file, 'r') as f:
+            return json.load(f)
+    raise FileNotFoundError("LinkedIn cookies not configured. Set LINKEDIN_LI_AT secret or create linkedin_cookies.json")
+
+
 def capture_linkedin_screenshot(profile_url: str, profile_dir: str) -> str:
     """Capture full-page screenshot of LinkedIn profile using Selenium + cookie."""
     filepath = os.path.join(profile_dir, "screenshot.png")
     
-    # Load cookie
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    cookie_file = os.path.join(script_dir, 'linkedin_cookies.json')
-    
-    with open(cookie_file, 'r') as f:
-        cookie_data = json.load(f)
+    cookie_data = load_cookies()
     
     print(f"Using cookie: {cookie_data.get('li_at', '')[:20]}...")
     print("Setting up browser...")
@@ -227,12 +238,7 @@ def capture_original_posts_screenshots(original_posts: list, profile_dir: str) -
         print("No original posts to screenshot.")
         return []
     
-    # Load cookies
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    cookie_file = os.path.join(script_dir, 'linkedin_cookies.json')
-    
-    with open(cookie_file, 'r') as f:
-        cookie_data = json.load(f)
+    cookie_data = load_cookies()
     
     # Create posts_screenshots subdirectory
     posts_screenshots_dir = os.path.join(profile_dir, "post_screenshots")
