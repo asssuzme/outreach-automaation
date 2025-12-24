@@ -13,6 +13,9 @@ logs/
 *.log
 batch_processing.log
 
+# Browser cache and data
+linkedin_browser/
+
 # Python
 __pycache__/
 *.py[cod]
