@@ -115,21 +115,33 @@ def get_chrome_driver(headless=True):
     import shutil
     
     options = Options()
-    options.add_argument('--headless=new')
+    if headless:
+        options.add_argument('--headless=new')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
-    options.add_argument('--window-size=2560,1440')
-    options.add_argument('--force-device-scale-factor=2')
-    options.add_argument('--high-dpi-support=1')
+    options.add_argument('--disable-software-rasterizer')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--disable-infobars')
+    options.add_argument('--disable-notifications')
+    options.add_argument('--disable-popup-blocking')
+    options.add_argument('--single-process')
+    options.add_argument('--no-zygote')
+    options.add_argument('--remote-debugging-port=0')
+    options.add_argument('--window-size=1920,1080')
     options.add_argument('--disable-blink-features=AutomationControlled')
     options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36')
+    options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    options.add_experimental_option('useAutomationExtension', False)
     
     chromium_path = shutil.which('chromium') or shutil.which('google-chrome')
     if chromium_path:
         options.binary_location = chromium_path
     
     driver = webdriver.Chrome(options=options)
+    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+        'source': 'Object.defineProperty(navigator, "webdriver", {get: () => undefined})'
+    })
     return driver
 
 
