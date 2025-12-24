@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["freetype", "geckodriver", "gitFull", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "playwright-driver", "tcl", "tesseract", "tk", "zlib", "chromium", "chromedriver"]
+packages = ["chromedriver", "chromium", "freetype", "geckodriver", "gitFull", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "playwright-driver", "scrot", "tcl", "tesseract", "tk", "xvfb-run", "zlib"]
 
 [workflows]
 runButton = "Project"
