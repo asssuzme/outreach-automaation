@@ -1,655 +1,453 @@
-# Editorial Teardown Engine - Complete Architecture
+# LinkedIn Outreach Automation - Complete Architecture
 
 ## Overview
 
-This system analyzes LinkedIn profiles and posts, generates editorial verdicts, and creates hand-drawn style annotations on screenshots to use in personalized outreach emails.
+**Complete end-to-end system** that scrapes LinkedIn profiles, analyzes them with AI, generates annotated visual critiques, and automatically sends personalized outreach messages via LinkedIn.
 
-**Goal:** Make output look like "a senior hiring manager marked this up by hand" — not AI annotations.
-
----
-
-## System Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        PHASE 1: DATA COLLECTION                      │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│   LinkedIn URL → Apify Scraper → Profile Data + Posts Data           │
-│                         ↓                                            │
-│              Selenium + undetected-chromedriver                      │
-│                         ↓                                            │
-│              Screenshots (Profile + Posts)                           │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-                                 ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PHASE 2: EDITORIAL TEARDOWN                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│   [1] Content Isolation                                              │
-│       Raw Screenshot → Minimal Crop → clean_content.png              │
-│                                                                      │
-│   [2] Narrative Diagnosis (GPT-3.5-turbo, TEXT ONLY)                 │
-│       OCR Text → Verdict + Core Gap + Consequence                    │
-│                                                                      │
-│   [3] Evidence Selection (Tesseract OCR + GPT-3.5-turbo)             │
-│       OCR Elements → GPT Selection → Exact Coordinates               │
-│                                                                      │
-│   [4] Hand-Drawn Rendering (PIL/Pillow)                              │
-│       Coordinates → Wobbly Circles + Arrows + Margin Notes           │
-│                                                                      │
-│   [5] Playbook Generation (GPT-3.5-turbo)                            │
-│       Verdict → Why It Fails + The Fix + Before/After Rewrites       │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-                                 ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│                      PHASE 3: EMAIL GENERATION                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│   Playbooks + Teardown Images → HTML Email with Embedded Images      │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+**Full Pipeline:** LinkedIn Profile URL → Scrape → Screenshot → Annotate → Generate Message → **Send LinkedIn Message**
 
 ---
 
-## Models Used
+## Complete System Architecture
 
-| Component | Model | Purpose |
-|-----------|-------|---------|
-| Profile/Post Scraping | Apify `apimaestro/linkedin-profile-detail` | Get profile data |
-| Post Scraping | Apify `apimaestro/linkedin-profile-posts` | Get posts data |
-| OCR Text Extraction | **Tesseract 5.5.1** (via pytesseract) | Extract text with exact pixel coordinates |
-| Text Extraction from Images | **GPT-4o** (`gpt-4o`) | OCR fallback + image understanding |
-| Narrative Diagnosis | **GPT-3.5-turbo** | Generate editorial verdicts (text-only) |
-| Text Element Selection | **GPT-3.5-turbo** | Select which OCR elements prove verdict |
-| Playbook Generation | **GPT-3.5-turbo** | Generate actionable playbooks |
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PHASE 1: DATA COLLECTION                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   LinkedIn Profile URL                                                   │
+│        ↓                                                                 │
+│   [Apify API] ──→ Profile Data (JSON)                                   │
+│        ↓                                                                 │
+│   [Apify API] ──→ Posts Data (JSON)                                      │
+│        ↓                                                                 │
+│   [Selenium + Chrome] ──→ Profile Screenshot (PNG)                      │
+│        ↓                                                                 │
+│   [Selenium + Chrome] ──→ Post Screenshots (PNG)                         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+                                 ↓
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PHASE 2: AI ANNOTATION                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Screenshots (Profile + Posts)                                          │
+│        ↓                                                                 │
+│   [Google Gemini API] ──→ Visual Analysis + Annotations                 │
+│        ↓                                                                 │
+│   Annotated Images (with red circles, arrows, callouts)                  │
+│        ↓                                                                 │
+│   [Email Generator] ──→ Outreach Email (HTML)                            │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+                                 ↓
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PHASE 3: LINKEDIN MESSAGING                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Annotated Images + Profile Data                                        │
+│        ↓                                                                 │
+│   [Message Generator] ──→ Personalized LinkedIn Message                  │
+│        ↓                                                                 │
+│   [Selenium Automation] ──→ Login to LinkedIn                           │
+│        ↓                                                                 │
+│   [Selenium Automation] ──→ Navigate to Profile                        │
+│        ↓                                                                 │
+│   [Selenium Automation] ──→ Open Message Dialog                        │
+│        ↓                                                                 │
+│   [Selenium Automation] ──→ Type Message + Attach Images               │
+│        ↓                                                                 │
+│   [Selenium Automation] ──→ Click Send                                  │
+│        ↓                                                                 │
+│   [Selenium Automation] ──→ Handle Confirmation Popup                  │
+│        ↓                                                                 │
+│   ✅ LinkedIn Message Sent                                               │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Complete Workflow Steps
+
+### Step 1: Profile Scraping (Apify)
+- **Input:** LinkedIn profile URL
+- **Service:** Apify API (`apimaestro/linkedin-profile-detail`)
+- **Output:** `profile_data.json` (name, headline, experience, education, etc.)
+
+### Step 2: Posts Scraping (Apify)
+- **Input:** LinkedIn profile URL
+- **Service:** Apify API (`apimaestro/linkedin-profile-posts`)
+- **Output:** `posts.json` (all posts with text, engagement, dates)
+
+### Step 3: Screenshot Capture (Selenium)
+- **Input:** LinkedIn profile URL + cookies
+- **Service:** Selenium + undetected-chromedriver + Chrome
+- **Output:** 
+  - `screenshot.png` (full profile page)
+  - `post_screenshots/post_*.png` (individual post screenshots)
+
+### Step 4: AI Annotation (Google Gemini)
+- **Input:** Screenshots
+- **Service:** Google Gemini API (`gemini-3-pro-image-preview`)
+- **Process:** 
+  - Sends screenshot to Gemini with detailed prompt
+  - Gemini analyzes profile from marketing perspective
+  - Returns annotated image with red circles, arrows, callouts
+- **Output:** `nano_banana_annotated/profile.png` (annotated image)
+
+### Step 5: Email Generation (Optional)
+- **Input:** Annotated images + profile data
+- **Service:** OpenAI GPT / Local generation
+- **Output:** `outreach_email_nano.html` (HTML email template)
+
+### Step 6: LinkedIn Message Sending (Selenium)
+- **Input:** Profile URL + Message + Annotated Images
+- **Service:** Selenium automation
+- **Process:**
+  1. Login using LinkedIn cookies
+  2. Navigate to target profile
+  3. Click "Message" button (or "More" → "Message" for InMail)
+  4. Type personalized message
+  5. Attach annotated images via file input
+  6. Click "Send" button
+  7. Handle confirmation popup (click Send again)
+  8. Verify message sent
+- **Output:** ✅ Message sent to LinkedIn profile
+
+---
+
+## Batch Processing Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         BATCH PROCESSOR                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Input: profiles_batch.txt (one URL per line)                          │
+│        ↓                                                                 │
+│   For each profile:                                                      │
+│        ├─→ Scrape Profile Data                                          │
+│        ├─→ Scrape Posts Data                                            │
+│        ├─→ Capture Screenshots                                          │
+│        ├─→ Annotate with Gemini                                         │
+│        ├─→ Generate Email                                               │
+│        └─→ Send LinkedIn Message (with delay)                            │
+│                                                                          │
+│   Output:                                                                │
+│   - output/{profile_id}/ (all data)                                     │
+│   - batch_results.json (processing summary)                             │
+│   - LinkedIn messages sent automatically                                 │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Key Components
+
+### 1. Data Collection (`main.py`, `apify_client.py`)
+- **Apify Client:** Wraps Apify API for profile/post scraping
+- **Screenshot Capture:** Selenium-based screenshot capture with high DPI
+- **Cookie Management:** LinkedIn session cookies for authentication
+
+### 2. AI Annotation (`nano_banana_annotator.py`)
+- **Backend Options:**
+  - `gemini_native_pro`: Google Gemini 3 Pro Image Preview (4K, best quality)
+  - `gemini_native`: Google Gemini 2.5 Flash Image (1024px, faster)
+  - `gemini_hybrid`: Gemini text analysis + PIL rendering (fallback)
+  - `kie`: KIE.ai Nano Banana Pro (paid alternative)
+- **Prompt Engineering:** Detailed prompts to preserve base image quality
+- **Output:** Annotated PNG images with transparent overlays
+
+### 3. Message Generation (`send_with_photos.py`, `batch_processor.py`)
+- **Message Template:** Professional agency-focused message
+- **Personalization:** Uses profile first name
+- **Image Attachment:** Attaches annotated profile image
+
+### 4. LinkedIn Automation (`send_with_photos.py`)
+- **Browser:** undetected-chromedriver (bypasses detection)
+- **Login:** Cookie-based authentication
+- **Message Dialog:** Handles both direct messages and InMail
+- **File Upload:** Selenium file input for image attachment
+- **Confirmation Handling:** Automatically handles LinkedIn's confirmation popup
+
+### 5. Batch Processing (`batch_processor.py`)
+- **Multi-Profile:** Processes multiple profiles sequentially
+- **Error Handling:** Continues if one profile fails
+- **Rate Limiting:** Built-in delays between profiles/messages
+- **Progress Tracking:** JSON results with success/failure status
 
 ---
 
 ## File Structure
 
 ```
-outreach automaation/
-├── main.py                    # Main orchestrator (Phase 1 + Phase 2)
-├── config.py                  # API keys, model configs
+outreach-automation/
+├── main.py                      # Main orchestrator (scrape + screenshot)
+├── batch_processor.py           # Batch processing for multiple profiles
+├── send_with_photos.py          # LinkedIn message sending automation
+├── nano_banana_annotator.py     # AI annotation engine (Gemini)
+├── config.py                    # API keys and configuration
 ├── 
-├── ─── PHASE 1: DATA COLLECTION ───
-├── apify_client.py            # Apify API wrapper for scraping
-├── cookie_manager.py          # LinkedIn cookie management
-├── linkedin_cookies.json      # Stored LinkedIn session cookies
+├── ─── DATA COLLECTION ───
+├── apify_client.py              # Apify API wrapper
+├── cookie_manager.py            # LinkedIn cookie management
+├── linkedin_cookies.json        # Stored LinkedIn session cookies
 ├── 
-├── ─── PHASE 2: EDITORIAL TEARDOWN ───
-├── teardown_engine.py         # Main orchestrator for Phase 2
-├── content_isolator.py        # Crop screenshots to content only
-├── narrative_diagnosis.py     # Generate verdicts (GPT-3.5-turbo)
-├── ocr_extractor.py           # Tesseract OCR with coordinates
-├── text_matcher.py            # Match verdict to OCR elements (GPT)
-├── evidence_selector.py       # Select evidence using OCR + GPT
-├── hand_drawn_renderer.py     # Draw annotations (PIL)
-├── playbook_generator.py      # Generate playbooks (GPT-3.5-turbo)
+├── ─── ANNOTATION ───
+├── nano_banana_annotator.py     # Gemini-based annotation
+├── generate_email_nano.py       # Email generation from annotations
 ├── 
-├── ─── PHASE 3: EMAIL ───
-├── email_generator.py         # Generate HTML emails
+├── ─── DEPLOYMENT ───
+├── Dockerfile                   # Docker container for production
+├── Dockerfile.cloudrun          # Google Cloud Run optimized
+├── docker-compose.yml           # Docker Compose configuration
+├── deploy.sh                   # Deployment script
+├── deploy-cloud-run.sh          # Cloud Run deployment script
+├── cloud-run-handler.py         # HTTP handler for Cloud Run
+├── scheduler.py                 # Python scheduler for cron jobs
 ├── 
-├── ─── OUTPUT ───
+├── ─── DOCUMENTATION ───
+├── ARCHITECTURE.md              # This file
+├── PRODUCTION_DEPLOYMENT.md     # Production deployment guide
+├── GOOGLE_CLOUD_RUN.md         # Cloud Run specific guide
+├── BATCH_PROCESSING.md         # Batch processing guide
+├── README.md                    # Main README
+├── 
 └── output/
     └── {profile_id}/
-        ├── profile_data.json
-        ├── posts.json
-        ├── posts_analysis.json
-        ├── screenshot.png
-        ├── post_screenshots/
-        │   ├── post_1_*.png
-        │   └── post_2_*.png
-        ├── clean_content/
-        │   ├── clean_profile.png
-        │   └── clean_post_*.png
-        ├── editorial_teardown/
-        │   ├── profile_teardown.png
-        │   ├── post_*_teardown.png
-        │   ├── profile_playbook.txt
-        │   └── post_*_playbook.txt
-        ├── diagnoses.json
-        ├── evidence.json
-        ├── playbooks.json
-        ├── outreach_email.html
-        └── teardown_summary.json
+        ├── profile_data.json           # Scraped profile data
+        ├── posts.json                 # Scraped posts data
+        ├── posts_analysis.json        # Posts categorization
+        ├── screenshot.png             # Profile screenshot
+        ├── post_screenshots/          # Post screenshots
+        │   └── post_*.png
+        ├── nano_banana_annotated/     # AI-annotated images
+        │   ├── profile.png            # Annotated profile
+        │   └── post_*.png             # Annotated posts
+        └── outreach_email_nano.html   # Generated email
 ```
 
 ---
 
-## Module Details
+## API Services Used
 
-### 1. Content Isolator (`content_isolator.py`)
-
-**Purpose:** Crop screenshots to remove LinkedIn UI chrome (nav bars, sidebars, ads).
-
-**Method:** Conservative cropping - just trims edges, keeps most content visible.
-
-```python
-# Key settings
-PADDING = 40  # pixels
-SKIP_CROP = True  # Minimal cropping
-
-# For posts: trim left/right margins slightly
-left_margin = min(50, int(width * 0.03))
-right_margin = min(100, int(width * 0.05))
-```
-
-**Output:** `clean_content/clean_profile.png`, `clean_content/clean_post_*.png`
+| Service | Purpose | Model/Endpoint |
+|---------|---------|----------------|
+| **Apify** | LinkedIn scraping | `apimaestro/linkedin-profile-detail`<br>`apimaestro/linkedin-profile-posts` |
+| **Google Gemini** | Image annotation | `gemini-3-pro-image-preview` (Pro)<br>`gemini-2.5-flash-image` (Fast) |
+| **OpenAI** | Email generation (optional) | `gpt-3.5-turbo` |
+| **Selenium** | Browser automation | Chrome + undetected-chromedriver |
 
 ---
 
-### 2. Narrative Diagnosis (`narrative_diagnosis.py`)
+## Message Template
 
-**Purpose:** Generate editorial verdicts using TEXT ONLY (no image analysis).
+**Current Message Format:**
 
-**Model:** `gpt-3.5-turbo`
+```
+Hey {first_name}! 👋
 
-**Input:** OCR-extracted text from screenshot
+I run a personal branding agency, and I personally took some time to do a complete breakdown of your LinkedIn profile. 
 
-**Output Schema:**
+I've attached an annotated snapshot that shows exactly where your profile is losing people and what specific fixes would make the biggest impact.
+
+I'd love to discuss this further with you - happy to hop on a quick call to walk you through the full breakdown and answer any questions. Would that be helpful?
+```
+
+**Attachments:**
+- Annotated profile image (`nano_banana_annotated/profile.png`)
+- Optionally: First annotated post image
+
+---
+
+## Complete Data Flow
+
+```
+LinkedIn Profile URL
+    ↓
+[main.py]
+    ├─→ [Apify] → profile_data.json
+    ├─→ [Apify] → posts.json
+    ├─→ [Selenium] → screenshot.png
+    └─→ [Selenium] → post_screenshots/*.png
+    ↓
+[nano_banana_annotator.py]
+    ├─→ [Gemini API] → Annotated profile.png
+    └─→ [Gemini API] → Annotated post_*.png
+    ↓
+[generate_email_nano.py]
+    └─→ outreach_email_nano.html
+    ↓
+[send_with_photos.py]
+    ├─→ [Selenium] → Login to LinkedIn
+    ├─→ [Selenium] → Navigate to profile
+    ├─→ [Selenium] → Open message dialog
+    ├─→ [Selenium] → Type message
+    ├─→ [Selenium] → Attach images
+    ├─→ [Selenium] → Click Send
+    └─→ [Selenium] → Handle confirmation popup
+    ↓
+✅ LinkedIn Message Sent
+```
+
+---
+
+## Batch Processing Flow
+
+```
+profiles_batch.txt
+    ↓
+[batch_processor.py]
+    ↓
+For each profile URL:
+    ├─→ Process Profile (Steps 1-5 above)
+    ├─→ Wait 30 seconds (rate limiting)
+    ├─→ Send LinkedIn Message
+    └─→ Wait 60 seconds (LinkedIn rate limiting)
+    ↓
+batch_results.json
+    ├─→ Total processed
+    ├─→ Succeeded
+    ├─→ Failed
+    └─→ Messages sent
+```
+
+---
+
+## Configuration
+
+### Environment Variables (`.env`)
+
+```bash
+# Apify API
+APIFY_API_KEY=your_apify_key
+
+# Google Gemini API
+GEMINI_API_KEY=your_gemini_key
+
+# OpenAI API (optional)
+OPENAI_API_KEY=your_openai_key
+
+# Annotation Backend
+ANNOTATION_BACKEND=gemini_native_pro
+
+# Output Directory
+OUTPUT_DIR=./output
+```
+
+### LinkedIn Cookies (`linkedin_cookies.json`)
+
 ```json
 {
-  "primary_story": "What this content is trying to say",
-  "actual_signal": "What it actually signals to a stranger",
-  "core_gap": "The single biggest mismatch",
-  "consequence": "What this costs the user",
-  "one_sentence_verdict": "Blunt verdict under 20 words"
-}
-```
-
-**Quality Gates (auto-reject and regenerate):**
-- Banned phrases: "no change needed", "add a hook", "improve engagement", "consider adding", etc.
-- Verdict must be under 25 words
-- Consequence must mention a real cost (words like "miss", "lose", "skip")
-
-**Max Retries:** 3
-
----
-
-### 3. OCR Extractor (`ocr_extractor.py`)
-
-**Purpose:** Extract ALL text from image with EXACT pixel coordinates.
-
-**Model:** Tesseract 5.5.1 (via pytesseract)
-
-**Config:** `--psm 3` (default, block-level text)
-
-**Output:**
-```json
-[
-  {
-    "text": "Mesa School of Business",
-    "x1": 120,
-    "y1": 45,
-    "x2": 350,
-    "y2": 72,
-    "confidence": 92.5
-  }
-]
-```
-
----
-
-### 4. Text Matcher (`text_matcher.py`)
-
-**Purpose:** Use GPT to select which OCR text elements prove the verdict.
-
-**Model:** `gpt-3.5-turbo`
-
-**Method:**
-1. Group OCR words into lines (same y-position within 15px)
-2. Filter out UI chrome (y < 60px, tiny elements)
-3. Present numbered list of text candidates to GPT
-4. GPT returns which element IDs prove the verdict
-5. Return those elements with their exact coordinates
-
-**Prompt:**
-```
-You are selecting which text elements prove an editorial verdict.
-
-VERDICT: "{verdict}"
-CORE GAP: {core_gap}
-
-Here are the text elements found in the image:
-1. "Mesa School of Business" (y=45)
-2. "Young entrepreneur on a mission..." (y=180)
-...
-
-Select exactly 2 text elements that BEST PROVE the verdict.
-Return: {"selected": [1, 5]}
-```
-
----
-
-### 5. Evidence Selector (`evidence_selector.py`)
-
-**Purpose:** Orchestrate OCR + Text Matching to get final evidence with coordinates.
-
-**Flow:**
-```
-Image → OCR Extractor → Text Elements
-                            ↓
-Verdict + Text Elements → Text Matcher → Selected Elements
-                                              ↓
-                                    Evidence with Coordinates
-```
-
-**Output:**
-```json
-{
-  "evidence": [
-    {
-      "id": 1,
-      "why_it_matters": "Matches: Element 5",
-      "editorial_caption": "Self-promotional facade masks...",
-      "bounding_box": {"x1": 505, "y1": 595, "x2": 1065, "y2": 609}
-    }
-  ],
-  "evidence_strength": "strong",
-  "verdict_supported": true
+  "li_at": "your_linkedin_session_cookie",
+  "JSESSIONID": "your_jsession_id"
 }
 ```
 
 ---
 
-### 6. Hand-Drawn Renderer (`hand_drawn_renderer.py`)
+## Usage Examples
 
-**Purpose:** Draw annotations that look like a human marked it with a red pen.
+### Single Profile (Full Pipeline)
 
-**Visual Elements:**
-
-| Element | Description |
-|---------|-------------|
-| Wobbly Rectangle | 4 overlapping rectangles with random jitter (±3px) |
-| Wavy Underline | Zigzag line below text (step=6px, amplitude=3px) |
-| Scribbled Arrow | Polyline with random offsets + arrowhead polygon |
-| Margin Note | Text caption positioned to the right of the box |
-
-**Colors:**
-```python
-RED = (196, 30, 58)   # Cardinal red for marks
-BLACK = (26, 26, 26)  # For text
-```
-
-**Font:** Chalkboard (macOS) or fallback to system default
-
-**Key Code:**
-```python
-def _draw_wobbly_circle(self, draw, bbox):
-    x1, y1, x2, y2 = bbox
-    for _ in range(4):  # Draw 4 overlapping rectangles
-        jitter = 3
-        draw.rectangle([
-            self._wobble(x1, jitter),
-            self._wobble(y1, jitter),
-            self._wobble(x2, jitter),
-            self._wobble(y2, jitter),
-        ], outline=self.RED, width=2)
-
-def _wobble(self, value, delta=3):
-    return value + random.randint(-delta, delta)
-```
-
----
-
-### 7. Playbook Generator (`playbook_generator.py`)
-
-**Purpose:** Generate actionable playbooks with specific rewrites.
-
-**Model:** `gpt-3.5-turbo`
-
-**Output Schema:**
-```json
-{
-  "editorial_verdict": "One sentence verdict",
-  "why_it_fails": ["Bullet 1", "Bullet 2", "Bullet 3"],
-  "the_fix": "Shift from X to Y",
-  "before_after": {
-    "headline": {"before": "...", "after": "..."},
-    "paragraph": {"before": "...", "after": "..."}
-  },
-  "reusable_principle": "If someone X, they should feel Y"
-}
-```
-
-**Banned Phrases (auto-reject):**
-- "consider adding"
-- "you might want to"
-- "best practice"
-- "thought leader"
-- "value proposition"
-- "personal brand"
-
----
-
-### 8. Teardown Engine (`teardown_engine.py`)
-
-**Purpose:** Orchestrate the full Phase 2 pipeline.
-
-**Flow:**
-```python
-def run(self):
-    # Step 1: Content Isolation
-    clean_content = isolate_all_content(self.profile_dir)
-    
-    # Step 2: Narrative Diagnosis
-    diagnoses = diagnose_all_content(self.profile_dir, profile_data)
-    
-    # Step 3: Evidence Selection (OCR-based)
-    evidence = select_evidence_for_all(self.profile_dir, diagnoses)
-    
-    # Step 4: Hand-Drawn Rendering
-    rendered = self._render_hand_drawn(evidence)
-    
-    # Step 5: Playbook Generation
-    playbooks = generate_all_playbooks(self.profile_dir, diagnoses, evidence)
-    
-    # Quality Check
-    self._run_quality_checks()
-```
-
-**Quality Checks:**
-- Clear one-sentence verdict (< 20 words)
-- Passed quality gate (no banned phrases)
-- Clear directional fix (contains "to")
-
----
-
-## Data Flow Diagram
-
-```
-┌──────────────┐
-│ LinkedIn URL │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐     ┌──────────────┐
-│ Apify Scrape │────▶│ Profile Data │
-└──────┬───────┘     │ Posts Data   │
-       │             └──────────────┘
-       ▼
-┌──────────────┐     ┌──────────────┐
-│   Selenium   │────▶│ Screenshots  │
-│ (cookies)    │     │ (PNG files)  │
-└──────────────┘     └──────┬───────┘
-                            │
-       ┌────────────────────┴────────────────────┐
-       ▼                                         ▼
-┌──────────────┐                          ┌──────────────┐
-│   Content    │                          │   Content    │
-│   Isolator   │                          │   Isolator   │
-└──────┬───────┘                          └──────┬───────┘
-       │                                         │
-       ▼                                         ▼
-┌──────────────┐                          ┌──────────────┐
-│ clean_profile│                          │ clean_post_* │
-│    .png      │                          │    .png      │
-└──────┬───────┘                          └──────┬───────┘
-       │                                         │
-       ▼                                         ▼
-┌──────────────┐                          ┌──────────────┐
-│  Tesseract   │                          │  Tesseract   │
-│     OCR      │                          │     OCR      │
-└──────┬───────┘                          └──────┬───────┘
-       │                                         │
-       ▼                                         ▼
-┌──────────────┐                          ┌──────────────┐
-│  OCR Text    │                          │  OCR Text    │
-│  + Coords    │                          │  + Coords    │
-└──────┬───────┘                          └──────┬───────┘
-       │                                         │
-       ├─────────────────┬───────────────────────┤
-       │                 │                       │
-       ▼                 ▼                       ▼
-┌──────────────┐  ┌──────────────┐       ┌──────────────┐
-│  Narrative   │  │    Text      │       │  Narrative   │
-│  Diagnosis   │  │   Matcher    │       │  Diagnosis   │
-│ (GPT-3.5)    │  │  (GPT-3.5)   │       │ (GPT-3.5)    │
-└──────┬───────┘  └──────┬───────┘       └──────┬───────┘
-       │                 │                       │
-       ▼                 ▼                       ▼
-┌──────────────┐  ┌──────────────┐       ┌──────────────┐
-│   Verdict    │  │   Evidence   │       │   Verdict    │
-│   + Gap      │  │  Coordinates │       │   + Gap      │
-└──────┬───────┘  └──────┬───────┘       └──────┬───────┘
-       │                 │                       │
-       └────────┬────────┘                       │
-                │                                │
-                ▼                                ▼
-         ┌──────────────┐                 ┌──────────────┐
-         │  Hand-Drawn  │                 │  Hand-Drawn  │
-         │   Renderer   │                 │   Renderer   │
-         └──────┬───────┘                 └──────┬───────┘
-                │                                │
-                ▼                                ▼
-         ┌──────────────┐                 ┌──────────────┐
-         │   profile_   │                 │   post_*_    │
-         │  teardown.png│                 │  teardown.png│
-         └──────┬───────┘                 └──────┬───────┘
-                │                                │
-                └────────────┬───────────────────┘
-                             │
-                             ▼
-                      ┌──────────────┐
-                      │   Playbook   │
-                      │  Generator   │
-                      │  (GPT-3.5)   │
-                      └──────┬───────┘
-                             │
-                             ▼
-                      ┌──────────────┐
-                      │   Email      │
-                      │  Generator   │
-                      └──────┬───────┘
-                             │
-                             ▼
-                      ┌──────────────┐
-                      │  outreach_   │
-                      │  email.html  │
-                      └──────────────┘
-```
-
----
-
-## API Keys & Configuration
-
-**File:** `config.py`
-
-```python
-# Apify
-APIFY_API_KEY = os.getenv("APIFY_API_KEY")
-LINKEDIN_PROFILE_ACTOR = "apimaestro/linkedin-profile-detail"
-LINKEDIN_POSTS_ACTOR = "apimaestro/linkedin-profile-posts"
-
-# OpenAI
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = "gpt-3.5-turbo"           # For text analysis
-OPENAI_VISION_MODEL = "gpt-4o"           # For image analysis (fallback)
-
-# Agency
-AGENCY_NAME = os.getenv("AGENCY_NAME")
-AGENCY_EMAIL = os.getenv("AGENCY_EMAIL")
-AGENCY_WEBSITE = os.getenv("AGENCY_WEBSITE")
-```
-
-**File:** `.env`
-```
-APIFY_API_KEY=apify_api_xxx
-OPENAI_API_KEY=sk-proj-xxx
-AGENCY_NAME=Your Agency
-AGENCY_EMAIL=contact@agency.com
-AGENCY_WEBSITE=https://agency.com
-```
-
----
-
-## Dependencies
-
-**File:** `requirements.txt`
-
-```
-requests>=2.28.0
-python-dotenv>=1.0.0
-Pillow>=9.0.0
-openai>=1.0.0
-undetected-chromedriver>=3.5.0
-selenium>=4.0.0
-pytesseract>=0.3.10
-```
-
-**System Dependencies:**
-- Tesseract OCR 5.5.1 (`brew install tesseract`)
-- Chrome browser (for Selenium)
-
----
-
-## Usage
-
-### Full Pipeline (Phase 1 + Phase 2)
 ```bash
-python main.py https://www.linkedin.com/in/username/
+# Process single profile and send message
+python3 main.py https://www.linkedin.com/in/username
+python3 send_with_photos.py --profile-dir output/username
 ```
 
-### Phase 2 Only (on existing data)
+### Batch Processing
+
 ```bash
-python teardown_engine.py output/username/
+# Process multiple profiles and send messages automatically
+python3 batch_processor.py --profiles-file profiles_batch.txt
 ```
 
-### Generate Email Only
+### Manual Message Sending
+
 ```bash
-python email_generator.py output/username/
+# Send message to specific profile
+python3 send_with_photos.py \
+  --profile-dir output/username \
+  --profile-url https://www.linkedin.com/in/username
 ```
 
 ---
 
-## Output Example
+## Deployment Options
 
-**Verdict:** "Self-promotional facade masks lack of substance or meaningful impact."
+### 1. Local Development
+```bash
+python3 batch_processor.py --profiles-file profiles.txt
+```
 
-**Why It Fails:**
-- Focus on personal achievements instead of societal impact
-- Superficial portrayal of commitment to social causes
-- Lacks authenticity in connecting on a meaningful level
+### 2. Docker
+```bash
+docker-compose up
+```
 
-**The Fix:** "Shift from self-centered promotion to genuine dedication to impactful social causes."
+### 3. Google Cloud Run
+```bash
+./deploy-cloud-run.sh
+```
 
-**Before → After:**
-- **Before:** "Mesa School of Business"
-- **After:** "Passionate Entrepreneur Driving Social Change"
+### 4. Scheduled (Cron)
+```bash
+# Daily at 9 AM
+0 9 * * * cd /path/to/outreach-automation && python3 batch_processor.py --profiles-file profiles.txt
+```
 
-**Reusable Principle:** "If someone showcases genuine dedication to social causes, they should feel connected on a deeper and more meaningful level."
+---
+
+## Key Features
+
+✅ **Complete Automation:** End-to-end from URL to sent message  
+✅ **AI-Powered Analysis:** Google Gemini visual annotation  
+✅ **Batch Processing:** Handle multiple profiles automatically  
+✅ **Error Handling:** Continues processing if one profile fails  
+✅ **Rate Limiting:** Built-in delays to avoid API limits  
+✅ **Production Ready:** Docker, Cloud Run, scheduling support  
+✅ **Professional Messages:** Agency-focused outreach template  
+
+---
+
+## Success Metrics
+
+- **Profile Processing:** ~5-10 minutes per profile
+- **Annotation Quality:** Crystal-clear base image with transparent overlays
+- **Message Delivery:** Automatic handling of LinkedIn confirmation popups
+- **Batch Efficiency:** Processes 10 profiles in ~1-2 hours
+- **Success Rate:** Continues processing even if individual profiles fail
 
 ---
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| V0 | Dec 2024 | Initial vision-based annotation (inaccurate boxes) |
-| V1 | Dec 2024 | OCR-based coordinates + hand-drawn rendering |
-| V1.1 | Dec 2024 | Added UI chrome filtering, improved text matching |
-| **V2** | Dec 2024 | **Judgment-First Architecture with Claude 3.5 Sonnet Vision** |
+| Version | Date | Key Features |
+|---------|------|--------------|
+| V1.0 | Dec 2024 | Initial OCR-based annotation system |
+| V2.0 | Dec 2024 | Gemini vision-based annotation |
+| **V3.0** | Dec 2024 | **Complete LinkedIn messaging automation** |
+| **V3.1** | Dec 2024 | **Batch processing + Cloud Run deployment** |
 
 ---
 
-# V2: JUDGMENT-FIRST EDITORIAL ENGINE
+## Architecture Highlights
 
-## New Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    V2: JUDGMENT-FIRST ARCHITECTURE                   │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│   Raw Screenshot                                                     │
-│        ↓                                                             │
-│   [Claude 3.5 Sonnet Vision] ─── "Brutal Executive Editor" Persona  │
-│        ↓                                                             │
-│   Strict JSON Output:                                                │
-│     • verdict (3-6 words)                                            │
-│     • the_gap (2 sentences)                                          │
-│     • annotations (EXACTLY 2, with normalized bounding boxes)        │
-│        ↓                                                             │
-│   [PIL Hand-Drawn Renderer]                                          │
-│     • Wobbly ellipses                                                │
-│     • Leader lines to margin                                         │
-│     • Handwritten-style notes                                        │
-│     • Verdict box at top                                             │
-│        ↓                                                             │
-│   Editorial Teardown Image                                           │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-## Key Difference: V1 vs V2
-
-| Aspect | V1 (OCR + GPT-3.5) | V2 (Claude Vision) |
-|--------|-------------------|-------------------|
-| Analysis | Text-only after OCR | Direct image understanding |
-| Coordinates | Tesseract → GPT matching | Claude returns normalized bbox |
-| Model | GPT-3.5-turbo | Claude 3.5 Sonnet |
-| Annotations | Up to 3 | EXACTLY 2 |
-| Persona | General analysis | "Brutal Executive Editor" |
-| Output | Tips & issues | Diagnosis & observations |
-
-## V2 Model
-
-| Component | Model | Purpose |
-|-----------|-------|---------|
-| Vision Analysis + Coordinates | **Claude 3.5 Sonnet** (`claude-sonnet-4-20250514`) | Single-pass analysis with bounding boxes |
-
-## V2 Output Schema (Pydantic)
-
-```python
-class Annotation(BaseModel):
-    text_snippet: str      # Exact text in that area
-    editorial_note: str    # Blunt observation (max 12 words)
-    bounding_box: List[float]  # [ymin, xmin, ymax, xmax] normalized 0-1
-
-class EditorialOutput(BaseModel):
-    verdict: str           # 3-6 word punchy headline
-    the_gap: str           # 2 sentences: what they project + why it fails
-    annotations: List[Annotation]  # EXACTLY 2 high-impact annotations
-```
-
-## V2 Rendering Features
-
-| Element | Description |
-|---------|-------------|
-| Verdict Box | Dark background at top, bold white text |
-| Wobbly Ellipse | 3 overlapping ellipses with random wobble |
-| Leader Line | Scribbled line from ellipse to margin |
-| Numbered Circle | Red circle with white number |
-| Margin Note | Handwritten-style text (Chalkboard/Marker Felt font) |
-
-## V2 Usage
-
-```bash
-# Single image
-python editorial_engine.py screenshot.png output.png
-
-# Process entire profile folder
-python editorial_engine.py --folder output/jainjatin2525
-```
-
-## V2 File
-
-- `editorial_engine.py` - Complete standalone module
+1. **Modular Design:** Each phase is independent and can be run separately
+2. **Multiple Backends:** Support for different annotation engines
+3. **Production Ready:** Docker, Cloud Run, scheduling, monitoring
+4. **Error Resilient:** Continues processing even if steps fail
+5. **Scalable:** Batch processing handles multiple profiles efficiently
+6. **Complete Automation:** No manual intervention needed after setup
 
 ---
 
-## Success Criteria
+## Next Steps
 
-The user reaction should be:
-> "Damn. That's exactly what's wrong."
-
-Not:
-> "Okay, makes sense."
-
-If it doesn't sting a little, it's not good enough.
-
+- **Scale:** Process hundreds of profiles daily
+- **Optimize:** Fine-tune delays and resource usage
+- **Monitor:** Track success rates and message responses
+- **Iterate:** Improve message templates based on responses
