@@ -231,19 +231,28 @@
 
             <div class="collapsible" id="cookieToggle">Configure LinkedIn Cookies</div>
             <div class="collapse-content" id="cookieForm">
-                <div style="margin-top: 15px;">
-                    <label for="liAt">li_at Cookie Value</label>
-                    <input type="text" id="liAt" placeholder="Paste your li_at cookie value here">
-                    <p class="help-text">
-                        To get this: Open LinkedIn in browser → F12 (Developer Tools) → Application tab → Cookies → linkedin.com → Copy the "li_at" value
-                    </p>
-                    <p class="help-text" style="margin-top: 8px; color: #6c757d;">
-                        <strong>Tip:</strong> For better security, you can also set LINKEDIN_LI_AT as a Replit secret instead of using this form.
+                <div style="margin-top: 15px; padding: 15px; background: #e8f4fd; border-radius: 8px; border-left: 4px solid #0077b5;">
+                    <h4 style="margin: 0 0 10px 0; color: #0077b5;">Quick Cookie Extraction</h4>
+                    <p style="margin: 0 0 10px 0; font-size: 14px;">Run this in your browser console while on LinkedIn:</p>
+                    <div style="background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; overflow-x: auto;">
+                        <code id="extractScript">copy(document.cookie.split(';').find(c=>c.trim().startsWith('li_at=')).split('=')[1])</code>
+                    </div>
+                    <button class="btn btn-secondary" style="margin-top: 10px; padding: 8px 16px; font-size: 13px;" onclick="copyExtractScript()">Copy Script</button>
+                    <p class="help-text" style="margin-top: 8px;">
+                        1. Go to <a href="https://www.linkedin.com" target="_blank" style="color: #0077b5;">linkedin.com</a> and log in<br>
+                        2. Press F12 → Console tab<br>
+                        3. Paste the script above and press Enter<br>
+                        4. The li_at cookie is now copied to your clipboard!
                     </p>
                 </div>
                 <div style="margin-top: 15px;">
-                    <label for="jsessionid">JSESSIONID (Optional)</label>
+                    <label for="liAt">li_at Cookie Value</label>
+                    <input type="text" id="liAt" placeholder="Paste your li_at cookie value here">
+                </div>
+                <div style="margin-top: 15px;">
+                    <label for="jsessionid">JSESSIONID (Optional but recommended)</label>
                     <input type="text" id="jsessionid" placeholder="Optional: JSESSIONID cookie value">
+                    <p class="help-text">For JSESSIONID, run: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">copy(document.cookie.split(';').find(c=>c.trim().startsWith('JSESSIONID=')).split('=')[1])</code></p>
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="saveCookies()">Save Cookies</button>
@@ -259,22 +268,29 @@
             <textarea id="profiles" placeholder="https://www.linkedin.com/in/johndoe
 https://www.linkedin.com/in/janedoe
 https://www.linkedin.com/in/someone-else"></textarea>
-            <p class="help-text">Enter one LinkedIn profile URL per line. The tool will scrape profile data, capture screenshots, and generate outreach content.</p>
+            <p class="help-text">Enter one LinkedIn profile URL per line. The tool will scrape profile data, capture screenshots, annotate with AI, and generate personalized outreach.</p>
 
-            <div class="collapsible" id="optionsToggle" style="margin-top: 20px;">Advanced Options</div>
-            <div class="collapse-content" id="optionsForm">
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h4 style="margin: 0 0 12px 0; color: #333;">Processing Options</h4>
                 <div class="options-grid">
                     <div class="checkbox-item">
-                        <input type="checkbox" id="sendMessages">
-                        <label for="sendMessages" style="margin: 0;">Send LinkedIn Messages</label>
+                        <input type="checkbox" id="sendMessages" checked>
+                        <label for="sendMessages" style="margin: 0; font-weight: 500;">Send LinkedIn Messages</label>
                     </div>
+                </div>
+                <p class="help-text" style="margin-top: 8px;">When enabled, the tool will automatically send personalized messages with generated images to each prospect via LinkedIn.</p>
+            </div>
+
+            <div class="collapsible" id="optionsToggle" style="margin-top: 15px;">Advanced Options</div>
+            <div class="collapse-content" id="optionsForm">
+                <div class="options-grid" style="margin-top: 10px;">
                     <div class="checkbox-item">
                         <input type="checkbox" id="skipScraping">
-                        <label for="skipScraping" style="margin: 0;">Skip Scraping</label>
+                        <label for="skipScraping" style="margin: 0;">Skip Scraping (use cached data)</label>
                     </div>
                     <div class="checkbox-item">
                         <input type="checkbox" id="skipAnnotation">
-                        <label for="skipAnnotation" style="margin: 0;">Skip Annotation</label>
+                        <label for="skipAnnotation" style="margin: 0;">Skip AI Annotation</label>
                     </div>
                     <div class="checkbox-item">
                         <input type="checkbox" id="skipScreenshot">
@@ -285,7 +301,7 @@ https://www.linkedin.com/in/someone-else"></textarea>
 
             <div class="button-group">
                 <button class="btn btn-primary" id="processBtn" onclick="processProfiles()">
-                    Process Profiles
+                    Process & Send Outreach
                 </button>
             </div>
 
@@ -319,11 +335,12 @@ https://www.linkedin.com/in/someone-else"></textarea>
                 const data = await response.json();
                 const statusEl = document.getElementById('cookieStatus');
                 if (data.configured) {
+                    const sourceText = data.source === 'secrets' ? ' (via Replit Secrets - Secure)' : ' (via form)';
                     statusEl.className = 'cookie-status configured';
-                    statusEl.innerHTML = '<span class="dot green"></span><span>LinkedIn cookies configured</span>';
+                    statusEl.innerHTML = '<span class="dot green"></span><span>LinkedIn cookies configured' + sourceText + '</span>';
                 } else {
                     statusEl.className = 'cookie-status not-configured';
-                    statusEl.innerHTML = '<span class="dot yellow"></span><span>LinkedIn cookies not configured - Screenshots will not work</span>';
+                    statusEl.innerHTML = '<span class="dot yellow"></span><span>LinkedIn cookies not configured - Messaging will not work</span>';
                 }
             } catch (e) {
                 console.error('Error checking cookie status:', e);
@@ -435,6 +452,18 @@ https://www.linkedin.com/in/someone-else"></textarea>
             } catch (e) {
                 statusEl.innerHTML = '<p style="color: #dc3545;">Unable to check API status</p>';
             }
+        }
+
+        function copyExtractScript() {
+            const script = document.getElementById('extractScript').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = originalText, 2000);
+            }).catch(err => {
+                alert('Failed to copy. Please select and copy manually.');
+            });
         }
 
         checkCookieStatus();

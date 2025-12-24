@@ -19,22 +19,27 @@ logger = logging.getLogger(__name__)
 COOKIE_FILE = 'linkedin_cookies.json'
 
 
-def get_cookies_from_env():
-    """Get LinkedIn cookies from environment variables (more secure)."""
+def get_cookies():
+    """Get LinkedIn cookies from environment secrets (secure) or fallback to file."""
     li_at = os.environ.get('LINKEDIN_LI_AT')
     if li_at:
         return {
             'li_at': li_at,
             'JSESSIONID': os.environ.get('LINKEDIN_JSESSIONID', '')
         }
+    if os.path.exists(COOKIE_FILE):
+        try:
+            with open(COOKIE_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
     return None
 
 
 def check_cookies_configured():
-    """Check if LinkedIn cookies are configured (env vars or file)."""
-    if get_cookies_from_env():
-        return True
-    return os.path.exists(COOKIE_FILE)
+    """Check if LinkedIn cookies are configured."""
+    cookies = get_cookies()
+    return cookies is not None and cookies.get('li_at')
 
 
 @app.route('/', methods=['GET'])
@@ -56,8 +61,10 @@ def api_status():
 @app.route('/api/cookies/status', methods=['GET'])
 def cookies_status():
     """Check if cookies are configured."""
+    from_env = bool(os.environ.get('LINKEDIN_LI_AT'))
     return jsonify({
-        'configured': check_cookies_configured()
+        'configured': check_cookies_configured(),
+        'source': 'secrets' if from_env else 'file' if os.path.exists(COOKIE_FILE) else 'none'
     }), 200
 
 
