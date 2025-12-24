@@ -7,7 +7,14 @@ import time
 import re
 from datetime import datetime
 from pathlib import Path
-import undetected_chromedriver as uc
+try:
+    import undetected_chromedriver as uc
+    USE_UC = True
+except ImportError:
+    USE_UC = False
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from apify_client import ApifyClient
 from config import OUTPUT_DIR
 
@@ -103,6 +110,29 @@ def analyze_and_categorize_posts(posts_data: list, profile_id: str, profile_dir:
     return analysis
 
 
+def get_chrome_driver(headless=True):
+    """Get a Chrome/Chromium driver using system chromium."""
+    import shutil
+    
+    options = Options()
+    options.add_argument('--headless=new')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--window-size=2560,1440')
+    options.add_argument('--force-device-scale-factor=2')
+    options.add_argument('--high-dpi-support=1')
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36')
+    
+    chromium_path = shutil.which('chromium') or shutil.which('google-chrome')
+    if chromium_path:
+        options.binary_location = chromium_path
+    
+    driver = webdriver.Chrome(options=options)
+    return driver
+
+
 def capture_linkedin_page_screenshot(url: str, output_path: str, cookie_data: dict) -> str:
     """
     Generic function to capture screenshot of any LinkedIn page.
@@ -117,17 +147,8 @@ def capture_linkedin_page_screenshot(url: str, output_path: str, cookie_data: di
     """
     li_at = cookie_data.get('li_at')
     jsessionid = cookie_data.get('JSESSIONID', '')
-    user_agent = cookie_data.get('UserAgent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36')
     
-    # Use undetected-chromedriver to avoid bot detection
-    options = uc.ChromeOptions()
-    # High-resolution screenshot settings (2x scale for retina quality)
-    options.add_argument('--window-size=2560,1440')  # Higher base resolution
-    options.add_argument('--force-device-scale-factor=2')  # 2x DPI for crisp text
-    options.add_argument('--high-dpi-support=1')  # Enable high DPI support
-    options.add_argument(f'--user-agent={user_agent}')
-    
-    driver = uc.Chrome(options=options, headless=True)
+    driver = get_chrome_driver(headless=True)
     
     try:
         # Go to LinkedIn homepage to set cookies

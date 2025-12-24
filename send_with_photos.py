@@ -16,25 +16,35 @@ import json
 import subprocess
 from pathlib import Path
 
-# Auto-install packages
-def ensure_packages():
-    pkgs = ['selenium', 'undetected-chromedriver']
-    for p in pkgs:
-        try:
-            __import__(p.replace('-', '_'))
-        except ImportError:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', p, '-q'])
-
-ensure_packages()
-
+import shutil
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import undetected_chromedriver as uc
+
+
+def get_chrome_driver(headless=False):
+    """Get a Chrome/Chromium driver using system chromium."""
+    options = Options()
+    if headless:
+        options.add_argument('--headless=new')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--start-maximized')
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36')
+    
+    chromium_path = shutil.which('chromium') or shutil.which('google-chrome')
+    if chromium_path:
+        options.binary_location = chromium_path
+    
+    driver = webdriver.Chrome(options=options)
+    return driver
 
 
 def load_cookies(file_path="linkedin_cookies.json"):
@@ -73,10 +83,7 @@ def send_message_with_photos(profile_url: str, message: str, image_paths: list, 
     
     # Start browser
     print("\n[1/6] Starting browser...")
-    options = uc.ChromeOptions()
-    options.add_argument('--start-maximized')
-    options.add_argument('--disable-blink-features=AutomationControlled')
-    driver = uc.Chrome(options=options)
+    driver = get_chrome_driver(headless=True)
     
     try:
         # Load cookies and login
