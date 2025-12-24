@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Outreach Automation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card h2 .icon {
+            font-size: 1.5rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .help-text {
+            color: #888;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .status.info {
+            background: #cce5ff;
+            color: #004085;
+            display: block;
+        }
+        .cookie-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .cookie-status.configured {
+            background: #d4edda;
+        }
+        .cookie-status.not-configured {
+            background: #fff3cd;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot.green { background: #28a745; }
+        .dot.yellow { background: #ffc107; }
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible:after {
+            content: ' +';
+            font-weight: bold;
+        }
+        .collapsible.active:after {
+            content: ' -';
+        }
+        .collapse-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .collapse-content.show {
+            max-height: 500px;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        .results.show {
+            display: block;
+        }
+        .results pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LinkedIn Outreach Automation</h1>
+
+        <div class="card">
+            <h2><span class="icon">🔐</span> LinkedIn Authentication</h2>
+            
+            <div id="cookieStatus" class="cookie-status not-configured">
+                <span class="dot yellow"></span>
+                <span>Checking cookie status...</span>
+            </div>
+
+            <div class="collapsible" id="cookieToggle">Configure LinkedIn Cookies</div>
+            <div class="collapse-content" id="cookieForm">
+                <div style="margin-top: 15px;">
+                    <label for="liAt">li_at Cookie Value</label>
+                    <input type="text" id="liAt" placeholder="Paste your li_at cookie value here">
+                    <p class="help-text">
+                        To get this: Open LinkedIn in browser → F12 (Developer Tools) → Application tab → Cookies → linkedin.com → Copy the "li_at" value
+                    </p>
+                    <p class="help-text" style="margin-top: 8px; color: #6c757d;">
+                        <strong>Tip:</strong> For better security, you can also set LINKEDIN_LI_AT as a Replit secret instead of using this form.
+                    </p>
+                </div>
+                <div style="margin-top: 15px;">
+                    <label for="jsessionid">JSESSIONID (Optional)</label>
+                    <input type="text" id="jsessionid" placeholder="Optional: JSESSIONID cookie value">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="saveCookies()">Save Cookies</button>
+                </div>
+                <div id="cookieSaveStatus" class="status"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><span class="icon">👥</span> LinkedIn Profile URLs</h2>
+            
+            <label for="profiles">Enter Profile URLs (one per line)</label>
+            <textarea id="profiles" placeholder="https://www.linkedin.com/in/johndoe
+https://www.linkedin.com/in/janedoe
+https://www.linkedin.com/in/someone-else"></textarea>
+            <p class="help-text">Enter one LinkedIn profile URL per line. The tool will scrape profile data, capture screenshots, and generate outreach content.</p>
+
+            <div class="collapsible" id="optionsToggle" style="margin-top: 20px;">Advanced Options</div>
+            <div class="collapse-content" id="optionsForm">
+                <div class="options-grid">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="sendMessages">
+                        <label for="sendMessages" style="margin: 0;">Send LinkedIn Messages</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="skipScraping">
+                        <label for="skipScraping" style="margin: 0;">Skip Scraping</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="skipAnnotation">
+                        <label for="skipAnnotation" style="margin: 0;">Skip Annotation</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="skipScreenshot">
+                        <label for="skipScreenshot" style="margin: 0;">Skip Screenshots</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" id="processBtn" onclick="processProfiles()">
+                    Process Profiles
+                </button>
+            </div>
+
+            <div id="processStatus" class="status"></div>
+            <div id="results" class="results">
+                <h3 style="margin-bottom: 10px;">Results</h3>
+                <pre id="resultsContent"></pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><span class="icon">📊</span> API Status</h2>
+            <div id="apiStatus">
+                <p>Checking API status...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.collapsible').forEach(el => {
+            el.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const content = this.nextElementSibling;
+                content.classList.toggle('show');
+            });
+        });
+
+        async function checkCookieStatus() {
+            try {
+                const response = await fetch('/api/cookies/status');
+                const data = await response.json();
+                const statusEl = document.getElementById('cookieStatus');
+                if (data.configured) {
+                    statusEl.className = 'cookie-status configured';
+                    statusEl.innerHTML = '<span class="dot green"></span><span>LinkedIn cookies configured</span>';
+                } else {
+                    statusEl.className = 'cookie-status not-configured';
+                    statusEl.innerHTML = '<span class="dot yellow"></span><span>LinkedIn cookies not configured - Screenshots will not work</span>';
+                }
+            } catch (e) {
+                console.error('Error checking cookie status:', e);
+            }
+        }
+
+        async function saveCookies() {
+            const liAt = document.getElementById('liAt').value.trim();
+            const jsessionid = document.getElementById('jsessionid').value.trim();
+            const statusEl = document.getElementById('cookieSaveStatus');
+
+            if (!liAt) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Please enter the li_at cookie value';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cookies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ li_at: liAt, JSESSIONID: jsessionid })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'Cookies saved successfully!';
+                    checkCookieStatus();
+                    document.getElementById('liAt').value = '';
+                    document.getElementById('jsessionid').value = '';
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = data.error || 'Failed to save cookies';
+                }
+            } catch (e) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Error saving cookies: ' + e.message;
+            }
+        }
+
+        async function processProfiles() {
+            const profiles = document.getElementById('profiles').value
+                .split('\n')
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+            
+            const statusEl = document.getElementById('processStatus');
+            const resultsEl = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+            const btn = document.getElementById('processBtn');
+
+            if (profiles.length === 0) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Please enter at least one LinkedIn profile URL';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = 'Processing... <span class="loader"></span>';
+            statusEl.className = 'status info';
+            statusEl.textContent = `Processing ${profiles.length} profile(s)... This may take a few minutes.`;
+            resultsEl.classList.remove('show');
+
+            try {
+                const response = await fetch('/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        profiles: profiles,
+                        send_messages: document.getElementById('sendMessages').checked,
+                        skip_scraping: document.getElementById('skipScraping').checked,
+                        skip_annotation: document.getElementById('skipAnnotation').checked,
+                        skip_screenshot: document.getElementById('skipScreenshot').checked
+                    })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'Processing completed successfully!';
+                    resultsContent.textContent = JSON.stringify(data, null, 2);
+                    resultsEl.classList.add('show');
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = data.error || 'Processing failed';
+                    resultsContent.textContent = JSON.stringify(data, null, 2);
+                    resultsEl.classList.add('show');
+                }
+            } catch (e) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Error: ' + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Process Profiles';
+            }
+        }
+
+        async function checkApiStatus() {
+            const statusEl = document.getElementById('apiStatus');
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                statusEl.innerHTML = `
+                    <p><strong>Service:</strong> ${data.service}</p>
+                    <p><strong>Status:</strong> ${data.status}</p>
+                    <p><strong>Cookies:</strong> ${data.cookies_configured ? 'Configured' : 'Not configured'}</p>
+                `;
+            } catch (e) {
+                statusEl.innerHTML = '<p style="color: #dc3545;">Unable to check API status</p>';
+            }
+        }
+
+        checkCookieStatus();
+        checkApiStatus();
+    </script>
+</body>
+</html>

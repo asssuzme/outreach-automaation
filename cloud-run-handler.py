@@ -9,21 +9,84 @@ Designed to work with Cloud Scheduler for scheduled runs.
 import os
 import json
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from batch_processor import BatchProcessor
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+COOKIE_FILE = 'linkedin_cookies.json'
+
+
+def get_cookies_from_env():
+    """Get LinkedIn cookies from environment variables (more secure)."""
+    li_at = os.environ.get('LINKEDIN_LI_AT')
+    if li_at:
+        return {
+            'li_at': li_at,
+            'JSESSIONID': os.environ.get('LINKEDIN_JSESSIONID', '')
+        }
+    return None
+
+
+def check_cookies_configured():
+    """Check if LinkedIn cookies are configured (env vars or file)."""
+    if get_cookies_from_env():
+        return True
+    return os.path.exists(COOKIE_FILE)
+
 
 @app.route('/', methods=['GET'])
-def health_check():
-    """Health check endpoint."""
+def index():
+    """Serve the frontend."""
+    return render_template('index.html')
+
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    """API status endpoint."""
     return jsonify({
         'status': 'healthy',
-        'service': 'linkedin-outreach-automation'
+        'service': 'linkedin-outreach-automation',
+        'cookies_configured': check_cookies_configured()
     }), 200
+
+
+@app.route('/api/cookies/status', methods=['GET'])
+def cookies_status():
+    """Check if cookies are configured."""
+    return jsonify({
+        'configured': check_cookies_configured()
+    }), 200
+
+
+@app.route('/api/cookies', methods=['POST'])
+def save_cookies():
+    """Save LinkedIn cookies."""
+    try:
+        data = request.get_json() or {}
+        li_at = data.get('li_at', '').strip()
+        jsessionid = data.get('JSESSIONID', '').strip()
+        
+        if not li_at:
+            return jsonify({'error': 'li_at cookie is required'}), 400
+        
+        cookie_data = {
+            'li_at': li_at
+        }
+        if jsessionid:
+            cookie_data['JSESSIONID'] = jsessionid
+        
+        with open(COOKIE_FILE, 'w') as f:
+            json.dump(cookie_data, f, indent=2)
+        
+        logger.info("LinkedIn cookies saved successfully")
+        return jsonify({'status': 'success', 'message': 'Cookies saved'}), 200
+        
+    except Exception as e:
+        logger.error(f"Error saving cookies: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/run', methods=['POST'])
